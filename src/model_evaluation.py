@@ -92,7 +92,7 @@ def save_matrics(metrics: dict, file_path:str) -> None:
 
 def main():
     try:
-        clf = load_model('./models/model.pkl')
+        clf = load_model('./models/model2.pkl')
         test_data = load_data('./data/processed/test_tfidf.csv')
         
         X_test = test_data.iloc[:,:-1].values
