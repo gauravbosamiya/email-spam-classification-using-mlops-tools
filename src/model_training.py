@@ -5,6 +5,7 @@ import pickle
 import logging
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
+import yaml
 
 log_dir = 'logs'
 os.makedirs(log_dir, exist_ok=True)
@@ -26,6 +27,23 @@ file_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
+
+def load_params(params_path:str) -> dict: 
+    try:
+        with open(params_path, 'r') as file:
+            params = yaml.safe_load(file)
+        logger.debug('parameters retrieved from %s', params_path)
+        return params
+    except FileNotFoundError:
+        logger.error("file not found: %s", params_path)
+        raise
+    except yaml.YAMLError as e:
+        logger.error('YAML error: %s', e)
+        raise
+    except Exception as e:
+        logger.error('unexpected error: %s', e)
+        raise
+
 def load_data(file_path:str) -> pd.DataFrame:
     try:
         df = pd.read_csv(file_path)
@@ -39,13 +57,13 @@ def load_data(file_path:str) -> pd.DataFrame:
         logger.error("unexpected error: %s", e)
         print(f"Error: {e}")
         
-def train_model(X_train:np.ndarray, y_train:np.ndarray, params:dict) -> MultinomialNB:
+def train_model(X_train:np.ndarray, y_train:np.ndarray, params:dict) -> RandomForestClassifier:
     try:
         if X_train.shape[0] != y_train.shape[0]:
             raise ValueError("Shape is differnet in X_train and y_train")
         
         logger.debug('intialize RandomForestClassifer')
-        clf = RandomForestClassifier()
+        clf = RandomForestClassifier(n_estimators=params['n_estimators'], random_state=params['random_state'])
         
         logger.debug('Model training start with %d samples', X_train.shape[0])
         clf.fit(X_train,y_train)
@@ -74,7 +92,9 @@ def save_model(model, file_path:str) -> None:
     
 def main():
     try:
-        params = {'n_estimators': 25, 'random_state': 2}
+        params = load_params('params.yaml')['model_training']
+        # params = {'n_estimators': 25, 'random_state': 2}
+        
         train_data = load_data('./data/processed/train_tfidf.csv')
         x_train = train_data.iloc[:,:-1].values
         y_train = train_data.iloc[:,-1].values
